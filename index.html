@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Food Assistant — Bangkok Team Dinner Finder</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #0f1117;
+      --bg2:       #161b27;
+      --bg3:       #1d2436;
+      --border:    #2a3352;
+      --text:      #e8eaf6;
+      --muted:     #7b85a3;
+      --gold:      #f5a623;
+      --gold-soft: #ffcc70;
+      --pastel-1:  #ffd6a5;
+      --pastel-2:  #ffb3c6;
+      --pastel-3:  #caffbf;
+      --pastel-4:  #a0c4ff;
+      --pastel-5:  #d0bfff;
+      --radius:    12px;
+      --nav-h:     60px;
+      --font:      'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Navbar ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      background: rgba(15, 17, 23, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      padding: 6px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: color 0.18s, background 0.18s;
+    }
+    nav a:hover {
+      color: var(--gold);
+      background: rgba(245,166,35,0.08);
+    }
+    nav .nav-logo {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--gold);
+      margin-right: 12px;
+      white-space: nowrap;
+    }
+    nav .nav-sep { flex-shrink: 0; color: var(--border); margin: 0 2px; }
+
+    /* ── Main Layout ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      overflow: hidden;
+      padding: 64px 32px 56px;
+      margin-bottom: 40px;
+      background: linear-gradient(135deg, #151b2e 0%, #1a2340 50%, #0f1117 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 80% 50%, rgba(245,166,35,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 10% 80%, rgba(160,196,255,0.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .header-inner {
+      position: relative;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .header-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(245,166,35,0.1);
+      border: 1px solid rgba(245,166,35,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      margin-bottom: 20px;
+    }
+    .header-eyebrow span { font-size: 14px; }
+    header h1 {
+      font-size: clamp(26px, 5vw, 48px);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    header h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, var(--gold), var(--gold-soft));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header .subtitle {
+      font-size: 17px;
+      color: var(--muted);
+      max-width: 620px;
+      margin-bottom: 28px;
+    }
+    .areas-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .area-chip {
+      font-size: 15px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 50px;
+      border: 1.5px solid;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .area-chip:hover { transform: translateY(-2px); }
+    /* All Areas chip (nth-child(1) now) */
+    .area-chip:nth-child(1) {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.25);
+      color: var(--muted);
+      box-shadow: none;
+    }
+    .area-chip:nth-child(1):hover,
+    .area-chip:nth-child(1).active {
+      background: rgba(255,255,255,0.13);
+      border-color: rgba(255,255,255,0.6);
+      color: var(--text);
+      box-shadow: 0 0 18px rgba(255,255,255,0.08);
+    }
+    /* Area chips shifted to nth-child(2–6) */
+    .area-chip:nth-child(2) {
+      background: rgba(255,214,165,0.15);
+      border-color: rgba(255,214,165,0.5);
+      color: var(--pastel-1);
+      box-shadow: 0 0 14px rgba(255,214,165,0.15);
+    }
+    .area-chip:nth-child(2):hover,
+    .area-chip:nth-child(2).active {
+      box-shadow: 0 0 28px rgba(255,214,165,0.5);
+      border-color: rgba(255,214,165,1);
+      background: rgba(255,214,165,0.28);
+    }
+    .area-chip:nth-child(3) {
+      background: rgba(255,179,198,0.15);
+      border-color: rgba(255,179,198,0.5);
+      color: var(--pastel-2);
+      box-shadow: 0 0 14px rgba(255,179,198,0.15);
+    }
+    .area-chip:nth-child(3):hover,
+    .area-chip:nth-child(3).active {
+      box-shadow: 0 0 28px rgba(255,179,198,0.5);
+      border-color: rgba(255,179,198,1);
+      background: rgba(255,179,198,0.28);
+    }
+    .area-chip:nth-child(4) {
+      background: rgba(202,255,191,0.15);
+      border-color: rgba(202,255,191,0.5);
+      color: var(--pastel-3);
+      box-shadow: 0 0 14px rgba(202,255,191,0.15);
+    }
+    .area-chip:nth-child(4):hover,
+    .area-chip:nth-child(4).active {
+      box-shadow: 0 0 28px rgba(202,255,191,0.5);
+      border-color: rgba(202,255,191,1);
+      background: rgba(202,255,191,0.28);
+    }
+    .area-chip:nth-child(5) {
+      background: rgba(160,196,255,0.15);
+      border-color: rgba(160,196,255,0.5);
+      color: var(--pastel-4);
+      box-shadow: 0 0 14px rgba(160,196,255,0.15);
+    }
+    .area-chip:nth-child(5):hover,
+    .area-chip:nth-child(5).active {
+      box-shadow: 0 0 28px rgba(160,196,255,0.5);
+      border-color: rgba(160,196,255,1);
+      background: rgba(160,196,255,0.28);
+    }
+    .area-chip:nth-child(6) {
+      background: rgba(208,191,255,0.15);
+      border-color: rgba(208,191,255,0.5);
+      color: var(--pastel-5);
+      box-shadow: 0 0 14px rgba(208,191,255,0.15);
+    }
+    .area-chip:nth-child(6):hover,
+    .area-chip:nth-child(6).active {
+      box-shadow: 0 0 28px rgba(208,191,255,0.5);
+      border-color: rgba(208,191,255,1);
+      background: rgba(208,191,255,0.28);
+    }
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .header-meta span { display: flex; align-items: center; gap: 6px; }
+    .header-meta strong { color: var(--text); }
+    .placeholder-name {
+      background: rgba(245,166,35,0.1);
+      border: 1px dashed rgba(245,166,35,0.4);
+      border-radius: 6px;
+      padding: 2px 10px;
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    /* ── XP-style window decoration ── */
+    .xp-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .xp-dot {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+    }
+    .xp-dot.r { background: #ff5f57; box-shadow: 0 0 0 1px rgba(255,95,87,0.4); }
+    .xp-dot.y { background: #febc2e; box-shadow: 0 0 0 1px rgba(254,188,46,0.4); }
+    .xp-dot.g { background: #28c840; box-shadow: 0 0 0 1px rgba(40,200,64,0.4); }
+
+    /* ── Section Shared ── */
+    section {
+      margin-bottom: 32px;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 28px 24px;
+      position: relative;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 24px; right: 24px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,166,35,0.3), transparent);
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .section-heading {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── Placeholder Box ── */
+    .placeholder-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 120px;
+      background: rgba(255,255,255,0.02);
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      padding: 32px 20px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    .placeholder-box .ph-icon { font-size: 28px; opacity: 0.5; }
+    .placeholder-box .ph-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+    }
+    .placeholder-box .ph-tag {
+      font-size: 11px;
+      font-family: monospace;
+      background: rgba(245,166,35,0.08);
+      border: 1px solid rgba(245,166,35,0.2);
+      color: var(--gold);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* ── Placeholder Grid ── */
+    .ph-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── Placeholder Table ── */
+    .placeholder-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .placeholder-table th {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .placeholder-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      color: var(--muted);
+    }
+    .placeholder-table tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+    .ph-cell {
+      display: inline-block;
+      height: 12px;
+      border-radius: 4px;
+      background: var(--border);
+      opacity: 0.6;
+    }
+
+    /* ── XP Pumpkin accent panel ── */
+    .xp-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .xp-panel-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(90deg, #1f2b4a, #25334e);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .xp-panel-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .xp-panel-bar-left .icon { font-size: 14px; }
+    .xp-panel-dots { display: flex; gap: 5px; }
+    .xp-panel-content {
+      background: var(--bg2);
+      padding: 20px;
+    }
+
+    /* ── Status Bar (Data Sources) ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #0d1220;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      flex-wrap: wrap;
+    }
+    .status-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(40,200,64,0.12);
+      border: 1px solid rgba(40,200,64,0.35);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #4ade80;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      animation: live-blink 1.6s ease-in-out infinite;
+    }
+    @keyframes live-blink {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px #4ade80; }
+      50% { opacity: 0.4; box-shadow: none; }
+    }
+    .status-info {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .status-info .sep { color: var(--border); }
+    .status-info .source-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .reload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245,166,35,0.1);
+      border: 1px solid rgba(245,166,35,0.3);
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gold);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .reload-btn:hover:not(:disabled) { background: rgba(245,166,35,0.18); }
+    .reload-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 64px;
+      border-top: 1px solid var(--border);
+      padding: 32px 20px;
+      text-align: center;
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    footer .footer-logo {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    footer p { font-size: 13px; color: var(--muted); }
+    footer .footer-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    footer .ftag {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      header { padding: 40px 20px 36px; }
+      .card { padding: 20px 16px 18px; }
+      nav { padding: 0 12px; gap: 2px; }
+      nav a { padding: 6px 8px; font-size: 12px; }
+      .ph-grid-3 { grid-template-columns: 1fr; }
+      .area-chip { font-size: 13px; padding: 8px 16px; }
+      .status-bar { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ── Top 3 Cards ── */
+    .top3-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 860px) { .top3-grid { grid-template-columns: 1fr; } }
+
+    .rec-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .rec-card:hover { transform: translateY(-4px); }
+
+    .rec-card-top {
+      padding: 20px 20px 0;
+      border-top: 3px solid;
+    }
+    .rec-card.gold  .rec-card-top { border-color: #f5a623; box-shadow: 0 -2px 20px rgba(245,166,35,0.18) inset; }
+    .rec-card.blue  .rec-card-top { border-color: #60b4f5; box-shadow: 0 -2px 20px rgba(96,180,245,0.18) inset; }
+    .rec-card.green .rec-card-top { border-color: #4ade80; box-shadow: 0 -2px 20px rgba(74,222,128,0.18) inset; }
+    .rec-card:hover.gold  { box-shadow: 0 8px 32px rgba(245,166,35,0.18); }
+    .rec-card:hover.blue  { box-shadow: 0 8px 32px rgba(96,180,245,0.18); }
+    .rec-card:hover.green { box-shadow: 0 8px 32px rgba(74,222,128,0.18); }
+
+    .rec-medal {
+      font-size: 36px;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .rec-name {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+    .rec-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .rec-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .rec-tag.area-ari      { background: rgba(255,179,198,0.12); border-color: rgba(255,179,198,0.45); color: #ffb3c6; }
+    .rec-tag.area-phrom    { background: rgba(208,191,255,0.12); border-color: rgba(208,191,255,0.45); color: #d0bfff; }
+    .rec-tag.area-thonglor { background: rgba(202,255,191,0.12); border-color: rgba(202,255,191,0.45); color: #caffbf; }
+    .rec-tag.area-asoke    { background: rgba(160,196,255,0.12); border-color: rgba(160,196,255,0.45); color: #a0c4ff; }
+    .rec-tag.area-siam     { background: rgba(255,214,165,0.12); border-color: rgba(255,214,165,0.45); color: #ffd6a5; }
+    .rec-tag.food-type     { background: rgba(255,255,255,0.05); border-color: var(--border); color: var(--muted); }
+
+    .rec-card-body { padding: 0 20px 20px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+
+    .rec-score-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .rec-score-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .rec-score-bar {
+      height: 100%;
+      border-radius: 99px;
+    }
+    .gold  .rec-score-bar { background: linear-gradient(90deg, #f5a623, #ffcc70); }
+    .blue  .rec-score-bar { background: linear-gradient(90deg, #60b4f5, #a0d8ff); }
+    .green .rec-score-bar { background: linear-gradient(90deg, #4ade80, #a3f0bf); }
+    .rec-score-num {
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .gold  .rec-score-num { color: #f5a623; }
+    .blue  .rec-score-num { color: #60b4f5; }
+    .green .rec-score-num { color: #4ade80; }
+
+    .rec-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .rec-stats span { display: flex; align-items: center; gap: 4px; }
+    .rec-stats strong { color: var(--text); }
+
+    .rec-why {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      border-left: 2px solid var(--border);
+      padding-left: 10px;
+    }
+    .gold  .rec-why { border-color: rgba(245,166,35,0.4); }
+    .blue  .rec-why { border-color: rgba(96,180,245,0.4); }
+    .green .rec-why { border-color: rgba(74,222,128,0.4); }
+
+    .rec-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid;
+      margin-top: auto;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .gold  .rec-btn { background: rgba(245,166,35,0.1);  border-color: rgba(245,166,35,0.35);  color: #f5a623; }
+    .blue  .rec-btn { background: rgba(96,180,245,0.1);  border-color: rgba(96,180,245,0.35);  color: #60b4f5; }
+    .green .rec-btn { background: rgba(74,222,128,0.1);  border-color: rgba(74,222,128,0.35);  color: #4ade80; }
+    .gold  .rec-btn:hover { background: rgba(245,166,35,0.22); box-shadow: 0 0 14px rgba(245,166,35,0.2); }
+    .blue  .rec-btn:hover { background: rgba(96,180,245,0.22); box-shadow: 0 0 14px rgba(96,180,245,0.2); }
+    .green .rec-btn:hover { background: rgba(74,222,128,0.22); box-shadow: 0 0 14px rgba(74,222,128,0.2); }
+
+    /* ── Pulse animation for placeholders ── */
+    @keyframes ph-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.7; }
+    }
+    .ph-cell { animation: ph-pulse 2s ease-in-out infinite; }
+
+    /* ── Ranking Table ── */
+    .ranking-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ranking-table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+      font-size: 13px;
+      table-layout: auto;
+    }
+    .ranking-table th {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    /* Wider columns */
+    .ranking-table th[data-col="name"] { min-width: 180px; }
+    .ranking-table th[data-col="area"] { min-width: 90px; }
+    .ranking-table th[data-col="type"] { min-width: 120px; }
+    /* Narrow sub-score columns */
+    .ranking-table th[data-col="sRating"],
+    .ranking-table th[data-col="sGroup"],
+    .ranking-table th[data-col="sPrice"],
+    .ranking-table th[data-col="sTravel"],
+    .ranking-table th[data-col="sData"],
+    .ranking-table th[data-col="sUnique"] { width: 54px; min-width: 54px; text-align: center; }
+    .ranking-table th:hover { color: var(--gold); background: rgba(245,166,35,0.06); }
+    .ranking-table th.sort-asc,
+    .ranking-table th.sort-desc { color: var(--gold); }
+    .sort-arrow { margin-left: 4px; opacity: 0.8; }
+    .ranking-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      color: var(--text);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    /* Restaurant name cell: allow wrapping but cap width */
+    .ranking-table td:nth-child(2) { white-space: normal; min-width: 180px; max-width: 220px; }
+    .ranking-table tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+    .ranking-table tr:hover td { background: rgba(245,166,35,0.04); }
+    .ranking-table tr.rank-gold td:first-child { border-left: 3px solid #f5a623; }
+    .ranking-table tr.rank-silver td:first-child { border-left: 3px solid #aab8c2; }
+    .ranking-table tr.rank-bronze td:first-child { border-left: 3px solid #cd7f32; }
+    .score-val { color: var(--gold); font-weight: 700; }
+    .subscore-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      text-align: center;
+    }
+    .rank-cell { font-weight: 700; white-space: nowrap; }
+    .restaurant-link {
+      color: var(--pastel-4);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .restaurant-link:hover { color: var(--gold); text-decoration: underline; }
+    .table-status-row td {
+      text-align: center;
+      padding: 28px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ── Comparison Table ── */
+    .cmp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .cmp-table {
+      width: 100%;
+      min-width: 640px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .cmp-table th, .cmp-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      vertical-align: middle;
+    }
+    /* Criteria column */
+    .cmp-table th.crit-col {
+      background: var(--bg3);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      width: 160px;
+      white-space: nowrap;
+    }
+    /* Restaurant header cells */
+    .cmp-table thead th.col-gold { background: rgba(245,166,35,0.12); border-top: 3px solid #f5a623; color: #f5a623; font-weight: 800; font-size: 13px; text-align: center; }
+    .cmp-table thead th.col-blue { background: rgba(96,180,245,0.12); border-top: 3px solid #60b4f5; color: #60b4f5; font-weight: 800; font-size: 13px; text-align: center; }
+    .cmp-table thead th.col-green { background: rgba(74,222,128,0.12); border-top: 3px solid #4ade80; color: #4ade80; font-weight: 800; font-size: 13px; text-align: center; }
+    /* Data cells */
+    .cmp-table tbody td { color: var(--text); text-align: center; background: var(--bg2); }
+    .cmp-table tbody tr:hover td { background: rgba(255,255,255,0.025); }
+    .cmp-table tbody td.crit-col { text-align: left; background: var(--bg3); }
+    /* Score cell with mini bar */
+    .cmp-bar-bg {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      min-width: 60px;
+    }
+    .cmp-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+    }
+    .cmp-bar-fill.bar-gold  { background: #f5a623 !important; }
+    .cmp-bar-fill.bar-blue  { background: #60b4f5 !important; }
+    .cmp-bar-fill.bar-green { background: #4ade80 !important; }
+    .cmp-score-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+    .cmp-score-num {
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 24px;
+      text-align: right;
+    }
+    .col-gold-val .cmp-score-num { color: #f5a623; }
+    .col-blue-val .cmp-score-num  { color: #60b4f5; }
+    .col-green-val .cmp-score-num { color: #4ade80; }
+    /* Total score row */
+    .cmp-table tr.row-total td { font-weight: 800; font-size: 14px; }
+    .cmp-table tr.row-total td.col-gold-val  { color: #f5a623; }
+    .cmp-table tr.row-total td.col-blue-val  { color: #60b4f5; }
+    .cmp-table tr.row-total td.col-green-val { color: #4ade80; }
+    /* Best for / watch out rows */
+    .cmp-table tr.row-best td       { background: rgba(74,222,128,0.06); text-align: left; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .cmp-table tr.row-best td.crit-col    { background: rgba(74,222,128,0.10); color: #4ade80; }
+    .cmp-table tr.row-watch td      { background: rgba(245,166,35,0.06); text-align: left; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .cmp-table tr.row-watch td.crit-col   { background: rgba(245,166,35,0.10); color: #f5a623; }
+    /* Section divider rows */
+    .cmp-table tr.row-divider td { background: var(--bg3); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 14px; }
+    /* Yes badge */
+    .yes-badge { display: inline-block; background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; border-radius: 12px; padding: 1px 10px; font-size: 11px; font-weight: 700; }
+
+    /* ── Workflow Steps ── */
+    .workflow-list { display: flex; flex-direction: column; gap: 12px; }
+    .workflow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .step-badge {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(245,166,35,0.15);
+      border: 1.5px solid rgba(245,166,35,0.5);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-content { flex: 1; }
+    .step-title { font-weight: 700; color: var(--text); font-size: 14px; }
+    .step-desc  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Tool Cards ── */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .tool-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .tool-card:hover { border-color: rgba(245,166,35,0.35); box-shadow: 0 0 12px rgba(245,166,35,0.08); }
+    .tool-name { font-weight: 700; color: var(--text); font-size: 14px; margin-bottom: 4px; }
+    .tool-role { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ── Scoring total row ── */
+    .placeholder-table tr.total-row td { font-weight: 700; color: var(--text); background: var(--bg3); }
+
+    /* ── Show all toggle ── */
+    .show-all-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .show-all-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245,166,35,0.07);
+      border: 1px solid rgba(245,166,35,0.3);
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .show-all-btn:hover {
+      background: rgba(245,166,35,0.14);
+      box-shadow: 0 0 12px rgba(245,166,35,0.15);
+    }
+
+    /* ══════════════════════════════════════
+       INFO PANEL (slide-in from right)
+    ══════════════════════════════════════ */
+
+    /* Page-shift wrapper */
+    .page-wrap {
+      transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-right: 0;
+    }
+    body.panel-open .page-wrap {
+      margin-right: 560px;
+    }
+
+    /* Panel itself */
+    #info-panel {
+      position: fixed;
+      top: 0; right: 0;
+      width: 560px;
+      height: 100vh;
+      background: #111623;
+      border-left: 1px solid var(--border);
+      box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    body.panel-open #info-panel {
+      transform: translateX(0);
+    }
+
+    /* Panel header bar */
+    #info-panel-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: linear-gradient(90deg, #1a2236, #1f2b40);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #info-panel-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    #info-panel-close {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px 10px;
+      line-height: 1;
+      transition: background 0.15s, color 0.15s;
+    }
+    #info-panel-close:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+
+    /* Scrollable content area */
+    #info-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    #info-panel-body::-webkit-scrollbar { width: 4px; }
+    #info-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Nav: info links get a special "panel trigger" look */
+    nav a.info-link { position: relative; }
+    nav a.info-link.panel-active {
+      color: var(--gold) !important;
+      background: rgba(245,166,35,0.12) !important;
+    }
+    nav a.info-link.panel-active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 50%;
+      transform: translateX(-50%);
+      width: 20px; height: 2px;
+      background: var(--gold);
+      border-radius: 2px;
+    }
+
+    /* Panel section styles — inherit from main but adjusted */
+    #info-panel-body .card,
+    #info-panel-body .xp-panel {
+      margin-bottom: 0;
+    }
+    #info-panel-body .section-heading { font-size: 18px; }
+    #info-panel-body .tools-grid { grid-template-columns: 1fr; }
+    #info-panel-body .workflow-list { gap: 10px; }
+    #info-panel-body .placeholder-table { font-size: 12px; }
+    #info-panel-body .placeholder-table th,
+    #info-panel-body .placeholder-table td { padding: 8px 10px; }
+
+    /* Backdrop dim (subtle) */
+    #panel-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s;
+      z-index: 199;
+    }
+    body.panel-open #panel-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ── Mobile: bottom sheet ── */
+    @media (max-width: 700px) {
+      body.panel-open .page-wrap { margin-right: 0; }
+      #info-panel {
+        width: 100%;
+        height: 75vh;
+        top: auto; bottom: 0; right: 0;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+        box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+      }
+      body.panel-open #info-panel { transform: translateY(0); }
+    }
+    /* ── AI Insights Section ── */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .insight-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .insight-card:hover {
+      border-color: rgba(245,166,35,0.35);
+      box-shadow: 0 0 12px rgba(245,166,35,0.08);
+    }
+    .insight-number {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(245,166,35,0.15);
+      border: 1.5px solid rgba(245,166,35,0.4);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .insight-text {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .insights-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 80px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .insights-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(160,196,255,0.1);
+      border: 1px solid rgba(160,196,255,0.3);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--pastel-4);
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════ PANEL BACKDROP ══════════════════ -->
+  <div id="panel-backdrop"></div>
+
+  <!-- ══════════════════ INFO PANEL ══════════════════ -->
+  <div id="info-panel">
+    <div id="info-panel-bar">
+      <span id="info-panel-title">Info</span>
+      <button id="info-panel-close">✕ Close</button>
+    </div>
+    <div id="info-panel-body"><!-- content injected by JS --></div>
+  </div>
+
+  <div class="page-wrap">
+  <!-- ══════════════════ NAVBAR ══════════════════ -->
+  <nav>
+    <div class="nav-logo">🍜 AI Food</div>
+    <span class="nav-sep">|</span>
+    <a href="#objective"  class="info-link" data-panel="objective">Objective</a>
+    <a href="#workflow"   class="info-link" data-panel="workflow">Workflow</a>
+    <a href="#tools"      class="info-link" data-panel="tools">Tools</a>
+    <a href="#datasources" class="info-link" data-panel="datasources">Sources</a>
+    <a href="#scoring"    class="info-link" data-panel="scoring">Scoring</a>
+    <a href="#ai-insights">Insights</a>
+    <a href="#ranking">Ranking</a>
+    <a href="#top3">Top 3</a>
+    <a href="#comparison">Compare</a>
+  </nav>
+
+  <!-- ══════════════════ HEADER ══════════════════ -->
+  <header>
+    <div class="header-inner">
+      <div class="header-eyebrow"><span>🤖</span> AI-Powered Restaurant Research · Bangkok 2026</div>
+      <h1>AI Food Assistant —<br /><em>Bangkok Team Dinner Finder</em></h1>
+      <p class="subtitle">Finding the best restaurants for teams of 8–12 people across 5 Bangkok areas</p>
+      <div class="areas-row">
+        <div class="area-chip active" id="chip-all">🌐 All Areas</div>
+        <div class="area-chip">สยาม · Siam</div>
+        <div class="area-chip">อารีย์ · Ari</div>
+        <div class="area-chip">ทองหล่อ · Thonglor</div>
+        <div class="area-chip">อโศก · Asoke</div>
+        <div class="area-chip">พร้อมพงษ์ · Phrom Phong</div>
+      </div>
+      <div class="header-meta">
+        <span>📅 <strong>June 2026</strong></span>
+        <span>👤 Student: <strong style="color:var(--text)">GP : Yui</strong></span>
+        <span>🎯 <strong>Team size: 8–12 pax</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ PANEL CONTENT TEMPLATES (hidden, cloned into panel by JS) ══ -->
+  <div id="panel-templates" style="display:none">
+
+    <div id="tpl-objective">
+      <div class="card">
+        <div class="xp-titlebar"><div class="xp-dot r"></div><div class="xp-dot y"></div><div class="xp-dot g"></div></div>
+        <div class="section-title">01 · Objective</div>
+        <div class="section-heading">Project Objective</div>
+        <p style="color:var(--muted);font-size:14px;line-height:1.75">
+          This project builds an AI-assisted workflow to find the best restaurant for a team of <strong style="color:var(--text)">8–12 people</strong> for an after-work dinner, choosing from five Bangkok areas:
+          <strong style="color:var(--gold)">สยาม (Siam)</strong>, <strong style="color:var(--gold)">อารีย์ (Ari)</strong>, <strong style="color:var(--gold)">ทองหล่อ (Thonglor)</strong>, <strong style="color:var(--gold)">อโศก (Asoke)</strong>, and <strong style="color:var(--gold)">พร้อมพงษ์ (Phrom Phong)</strong>.
+          The central question answered is: <em style="color:var(--text)">"Which restaurant best suits a team dinner — and why?"</em>
+          All decisions are grounded in real data scraped from Google Maps, not personal opinions or guesswork.
+          Restaurants are evaluated objectively across six weighted criteria, producing a ranked shortlist with clear reasoning.
+        </p>
+      </div>
+    </div>
+
+    <div id="tpl-workflow">
+      <div class="xp-panel">
+        <div class="xp-panel-bar">
+          <div class="xp-panel-bar-left"><span class="icon">🔄</span> 02 · Workflow Overview</div>
+          <div class="xp-panel-dots"><div class="xp-dot r"></div><div class="xp-dot y"></div><div class="xp-dot g"></div></div>
+        </div>
+        <div class="xp-panel-content">
+          <div class="section-heading">AI Workflow — Step by Step</div>
+          <div class="workflow-list">
+            <div class="workflow-step"><div class="step-badge">1</div><div class="step-content"><div class="step-title">Problem Framing</div><div class="step-desc">Define team size, target areas, and decision criteria before any data is collected.</div></div></div>
+            <div class="workflow-step"><div class="step-badge">2</div><div class="step-content"><div class="step-title">Data Collection</div><div class="step-desc">Apify Google Maps Scraper collects restaurant listings, ratings, reviews, and metadata across all 5 Bangkok areas.</div></div></div>
+            <div class="workflow-step"><div class="step-badge">3</div><div class="step-content"><div class="step-title">Data Storage</div><div class="step-desc">Raw scraped data is stored in Google Sheets, separated into raw tabs per area and a unified clean data tab.</div></div></div>
+            <div class="workflow-step"><div class="step-badge">4</div><div class="step-content"><div class="step-title">Data Cleaning</div><div class="step-desc">Claude AI normalizes field formats, deduplicates entries, flags missing data, and fills gaps where possible.</div></div></div>
+            <div class="workflow-step"><div class="step-badge">5</div><div class="step-content"><div class="step-title">Scoring</div><div class="step-desc">Each restaurant is scored across 6 weighted criteria totalling 100 points — rating, group fit, price, travel, data completeness, and uniqueness.</div></div></div>
+            <div class="workflow-step"><div class="step-badge">6</div><div class="step-content"><div class="step-title">AI Analysis</div><div class="step-desc">Claude ranks all restaurants, surfaces insights, identifies trade-offs, and generates the Top 3 recommendations with reasoning.</div></div></div>
+            <div class="workflow-step"><div class="step-badge">7</div><div class="step-content"><div class="step-title">HTML Output</div><div class="step-desc">The final ranked report is built as a single-page HTML file — this page — with live data from Google Sheets via CSV fetch.</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tpl-tools">
+      <div class="card">
+        <div class="xp-titlebar"><div class="xp-dot r"></div><div class="xp-dot y"></div><div class="xp-dot g"></div></div>
+        <div class="section-title">03 · Tools Used</div>
+        <div class="section-heading">Tech Stack</div>
+        <div class="tools-grid">
+          <div class="tool-card"><div class="tool-name">🕷️ Apify</div><div class="tool-role">Google Maps Scraper — automated collection of restaurant data including ratings, reviews, price range, and group info.</div></div>
+          <div class="tool-card"><div class="tool-name">📊 Google Sheets</div><div class="tool-role">Raw and clean data storage. Published as a live CSV endpoint for this dashboard to fetch at runtime.</div></div>
+          <div class="tool-card"><div class="tool-name">🤖 Claude AI (Anthropic)</div><div class="tool-role">Data cleaning, scoring logic, AI-assisted ranking, insight generation, and HTML report authoring.</div></div>
+          <div class="tool-card"><div class="tool-name">⚙️ n8n</div><div class="tool-role">Workflow automation — auto-publishes the Google Sheet to CSV whenever data changes, keeping the dashboard live.</div></div>
+          <div class="tool-card"><div class="tool-name">💻 HTML / CSS / JS</div><div class="tool-role">Final report page — this file. Vanilla stack only, no external frameworks or dependencies.</div></div>
+          <div class="tool-card"><div class="tool-name">🚀 Vercel / GitHub Pages</div><div class="tool-role">Optional deployment for sharing the dashboard publicly as a hosted web page.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tpl-datasources">
+      <div class="card">
+        <div class="xp-titlebar"><div class="xp-dot r"></div><div class="xp-dot y"></div><div class="xp-dot g"></div></div>
+        <div class="section-title">04 · Data Sources</div>
+        <div class="section-heading">Data Sources</div>
+        <table class="placeholder-table">
+          <thead><tr><th>Source Name</th><th>Details</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>🕷️ Apify Google Maps Scraper</td>
+              <td>75+ restaurants scraped across 5 Bangkok areas — สยาม, อารีย์, ทองหล่อ, อโศก, พร้อมพงษ์<br>
+              <a href="https://apify.com/compass/google-maps-scraper" target="_blank" rel="noopener" style="color:var(--pastel-4);font-size:12px">↗ View Apify Actor</a></td>
+            </tr>
+            <tr>
+              <td>📊 Google Sheets (Clean Data)</td>
+              <td>Normalized, scored dataset — fetched live as CSV by this page on load<br>
+              <a href="https://docs.google.com/spreadsheets/d/15k7GIZeffa20MWom0erO-ZfuOGDOcX-iw5VeoohjOo8/edit?usp=sharing" target="_blank" rel="noopener" style="color:var(--pastel-4);font-size:12px">↗ Open Google Sheet</a></td>
+            </tr>
+            <tr>
+              <td>🗺️ Google Maps URLs</td>
+              <td>Direct evidence links for each restaurant — included in every row of the ranking table for verification</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tpl-scoring">
+      <div class="xp-panel">
+        <div class="xp-panel-bar">
+          <div class="xp-panel-bar-left"><span class="icon">⚖️</span> 05 · Scoring Criteria</div>
+          <div class="xp-panel-dots"><div class="xp-dot r"></div><div class="xp-dot y"></div><div class="xp-dot g"></div></div>
+        </div>
+        <div class="xp-panel-content">
+          <div class="section-heading">Scoring Model — 100 Points</div>
+          <table class="placeholder-table">
+            <thead><tr><th>Criterion</th><th>Weight</th><th>What It Measures</th></tr></thead>
+            <tbody>
+              <tr><td>⭐ Rating &amp; Review Quality</td><td>25%</td><td>Google rating combined with volume of reviews — higher weight, more trustworthy signal</td></tr>
+              <tr><td>👥 Group Suitability</td><td>20%</td><td>Whether the restaurant fits a team of 8–12 people in terms of space, format, and booking</td></tr>
+              <tr><td>💰 Price Suitability</td><td>15%</td><td>Value for money relative to the team budget — affordable range scores higher</td></tr>
+              <tr><td>🚇 Travel Convenience</td><td>15%</td><td>Accessibility by BTS / MRT and general location convenience for the team</td></tr>
+              <tr><td>📋 Data Completeness</td><td>15%</td><td>How complete and verified the restaurant's data record is in the dataset</td></tr>
+              <tr><td>✨ Uniqueness / Experience</td><td>10%</td><td>Special or memorable dining concept — stands out from generic options</td></tr>
+              <tr class="total-row"><td><strong>Total</strong></td><td><strong>100%</strong></td><td><strong>—</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#panel-templates -->
+
+  <!-- ══════════════════ MAIN ══════════════════ -->
+  <main>
+
+    <!-- ── Sources ── -->
+    <section id="sources">
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <div class="live-badge">
+            <div class="live-dot"></div>
+            LIVE
+          </div>
+          <div class="status-info">
+            <span>อ่านจากข้อมูลจริง</span>
+            <span class="sep">·</span>
+            <span>Last updated: <strong id="last-updated" style="color:var(--text)">June 2026</strong></span>
+            <span class="sep">·</span>
+            <span>Sources:</span>
+            <span class="source-tag">🕷️ Apify Google Maps Scraper</span>
+            <a class="source-tag" href="https://docs.google.com/spreadsheets/d/15k7GIZeffa20MWom0erO-ZfuOGDOcX-iw5VeoohjOo8/edit?usp=sharing" target="_blank" rel="noopener" style="text-decoration:none">📊 Google Sheets ↗</a>
+            <span class="source-tag">🤖 Claude AI</span>
+          </div>
+        </div>
+        <button class="reload-btn" id="reload-btn">🔄 Reload</button>
+      </div>
+    </section>
+
+    <!-- ── AI Insights ── -->
+    <section id="ai-insights">
+      <div class="xp-panel">
+        <div class="xp-panel-bar">
+          <div class="xp-panel-bar-left">
+            <span class="icon">🤖</span> AI Insights
+            <span class="insights-badge">LIVE · OpenRouter</span>
+          </div>
+          <div class="xp-panel-dots">
+            <div class="xp-dot r"></div>
+            <div class="xp-dot y"></div>
+            <div class="xp-dot g"></div>
+          </div>
+        </div>
+        <div class="xp-panel-content">
+          <div class="section-heading" style="font-size:18px;margin-bottom:4px">AI-Generated Insights</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">3 key insights generated by AI from the live restaurant dataset — updated automatically each time the page loads.</p>
+          <div id="insights-container">
+            <div class="insights-loading">
+              <span>🤖</span> <span id="insights-status">AI is analyzing the dataset...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Ranking ── -->
+    <section id="ranking">
+      <div class="xp-panel">
+        <div class="xp-panel-bar">
+          <div class="xp-panel-bar-left">
+            <span class="icon">🏅</span> 06 · Top 10 Ranking
+          </div>
+          <div class="xp-panel-dots">
+            <div class="xp-dot r"></div>
+            <div class="xp-dot y"></div>
+            <div class="xp-dot g"></div>
+          </div>
+        </div>
+        <div class="xp-panel-content">
+          <div class="section-heading">Top 10 Restaurants</div>
+          <!-- CONTENT: ranking -->
+          <div class="ranking-table-wrap">
+          <table class="ranking-table" id="ranking-table">
+            <thead>
+              <tr>
+                <th data-col="rank">Rank <span class="sort-arrow"></span></th>
+                <th data-col="name">Restaurant <span class="sort-arrow"></span></th>
+                <th data-col="area">Area <span class="sort-arrow"></span></th>
+                <th data-col="type">Food Type <span class="sort-arrow"></span></th>
+                <th data-col="score">Total Score <span class="sort-arrow"></span></th>
+                <th data-col="sRating">⭐ Rating</th>
+                <th data-col="sGroup">👥 Group</th>
+                <th data-col="sPrice">💰 Price</th>
+                <th data-col="sTravel">🚇 Travel</th>
+                <th data-col="sData">📋 Data</th>
+                <th data-col="sUnique">✨ Unique</th>
+                <th data-col="price">Price/pax <span class="sort-arrow"></span></th>
+              </tr>
+            </thead>
+            <tbody id="ranking-tbody">
+              <tr class="table-status-row">
+                <td colspan="12">⏳ Loading data from Google Sheets...</td>
+              </tr>
+            </tbody>
+          </table>
+          </div><!-- /.ranking-table-wrap -->
+          <div class="show-all-wrap" id="show-all-wrap" style="display:none">
+            <button class="show-all-btn" id="show-all-btn"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Top 3 ── -->
+    <section id="top3">
+      <div class="card">
+        <div class="xp-titlebar">
+          <div class="xp-dot r"></div>
+          <div class="xp-dot y"></div>
+          <div class="xp-dot g"></div>
+        </div>
+        <div class="section-title">07 · Top 3 Picks</div>
+        <div class="section-heading" id="top3-heading">Top 3 Recommendations</div>
+        <div class="top3-grid" id="top3-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── Comparison ── -->
+    <section id="comparison">
+      <div class="xp-panel">
+        <div class="xp-panel-bar">
+          <div class="xp-panel-bar-left"><span class="icon">⚖️</span> 08 · Restaurant Comparison</div>
+          <div class="xp-panel-dots"><div class="xp-dot r"></div><div class="xp-dot y"></div><div class="xp-dot g"></div></div>
+        </div>
+        <div class="xp-panel-content">
+          <div class="section-heading">Top 3 — Side by Side</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:20px">A direct comparison of the three highest-scoring restaurants across all areas, highlighting key trade-offs to help the team make a final decision.</p>
+          <div class="cmp-scroll">
+            <table class="cmp-table">
+              <thead>
+                <tr>
+                  <th class="crit-col">Criteria</th>
+                  <th class="col-gold">🥇 Madcow Burger<br><span style="font-size:11px;font-weight:400">x Under Over Ari</span></th>
+                  <th class="col-blue">🥈 KURATHAI<br><span style="font-size:11px;font-weight:400">SHOKUDO</span></th>
+                  <th class="col-green">🥉 Barney's<br><span style="font-size:11px;font-weight:400">Burger Joint</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-divider"><td colspan="4">GENERAL INFO</td></tr>
+                <tr>
+                  <td class="crit-col">Google Rating</td>
+                  <td class="col-gold-val">⭐ 4.8</td>
+                  <td class="col-blue-val">⭐ 4.8</td>
+                  <td class="col-green-val">⭐ 4.8</td>
+                </tr>
+                <tr>
+                  <td class="crit-col">No. of Reviews</td>
+                  <td class="col-gold-val">244</td>
+                  <td class="col-blue-val" style="font-weight:700;color:#60b4f5">2,025</td>
+                  <td class="col-green-val">714</td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Price / Person</td>
+                  <td class="col-gold-val">150–350฿</td>
+                  <td class="col-blue-val">150–350฿</td>
+                  <td class="col-green-val">150–350฿</td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Food Type</td>
+                  <td class="col-gold-val">🍔 Burger</td>
+                  <td class="col-blue-val">🍱 Japanese Buffet</td>
+                  <td class="col-green-val">🍔 Burger</td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Area</td>
+                  <td class="col-gold-val">อารีย์ (Ari)</td>
+                  <td class="col-blue-val">พร้อมพงษ์ (Phrom Phong)</td>
+                  <td class="col-green-val">อารีย์ (Ari)</td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Group Suitability</td>
+                  <td class="col-gold-val"><span class="yes-badge">✓ Yes</span></td>
+                  <td class="col-blue-val"><span class="yes-badge">✓ Yes</span></td>
+                  <td class="col-green-val"><span class="yes-badge">✓ Yes</span></td>
+                </tr>
+                <tr class="row-divider"><td colspan="4">SCORING BREAKDOWN</td></tr>
+                <tr>
+                  <td class="crit-col">Score: Rating</td>
+                  <td class="col-gold-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-gold" style="width:96%"></div></div><span class="cmp-score-num" style="color:#f5a623">96</span></div></td>
+                  <td class="col-blue-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-blue" style="width:96%"></div></div><span class="cmp-score-num" style="color:#60b4f5">96</span></div></td>
+                  <td class="col-green-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-green" style="width:96%"></div></div><span class="cmp-score-num" style="color:#4ade80">96</span></div></td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Score: Group</td>
+                  <td class="col-gold-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-gold" style="width:100%"></div></div><span class="cmp-score-num" style="color:#f5a623">100</span></div></td>
+                  <td class="col-blue-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-blue" style="width:100%"></div></div><span class="cmp-score-num" style="color:#60b4f5">100</span></div></td>
+                  <td class="col-green-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-green" style="width:100%"></div></div><span class="cmp-score-num" style="color:#4ade80">100</span></div></td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Score: Price</td>
+                  <td class="col-gold-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-gold" style="width:85%"></div></div><span class="cmp-score-num" style="color:#f5a623">85</span></div></td>
+                  <td class="col-blue-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-blue" style="width:85%"></div></div><span class="cmp-score-num" style="color:#60b4f5">85</span></div></td>
+                  <td class="col-green-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-green" style="width:85%"></div></div><span class="cmp-score-num" style="color:#4ade80">85</span></div></td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Score: Travel</td>
+                  <td class="col-gold-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-gold" style="width:80%"></div></div><span class="cmp-score-num" style="color:#f5a623">80</span></div></td>
+                  <td class="col-blue-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-blue" style="width:80%"></div></div><span class="cmp-score-num" style="color:#60b4f5">80</span></div></td>
+                  <td class="col-green-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-green" style="width:80%"></div></div><span class="cmp-score-num" style="color:#4ade80">80</span></div></td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Score: Data Complete</td>
+                  <td class="col-gold-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-gold" style="width:100%"></div></div><span class="cmp-score-num" style="color:#f5a623">100</span></div></td>
+                  <td class="col-blue-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-blue" style="width:100%"></div></div><span class="cmp-score-num" style="color:#60b4f5">100</span></div></td>
+                  <td class="col-green-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-green" style="width:100%"></div></div><span class="cmp-score-num" style="color:#4ade80">100</span></div></td>
+                </tr>
+                <tr>
+                  <td class="crit-col">Score: Unique</td>
+                  <td class="col-gold-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-gold" style="width:100%"></div></div><span class="cmp-score-num" style="color:#f5a623">100</span></div></td>
+                  <td class="col-blue-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-blue" style="width:100%"></div></div><span class="cmp-score-num" style="color:#60b4f5">100</span></div></td>
+                  <td class="col-green-val"><div class="cmp-score-wrap"><div class="cmp-bar-bg"><div class="cmp-bar-fill bar-green" style="width:100%"></div></div><span class="cmp-score-num" style="color:#4ade80">100</span></div></td>
+                </tr>
+                <tr class="row-total">
+                  <td class="crit-col"><strong>Total Score</strong></td>
+                  <td class="col-gold-val">93.8 / 100</td>
+                  <td class="col-blue-val">93.8 / 100</td>
+                  <td class="col-green-val">93.8 / 100</td>
+                </tr>
+                <tr class="row-divider"><td colspan="4">VERDICT</td></tr>
+                <tr class="row-best">
+                  <td class="crit-col">✅ Best For</td>
+                  <td>Casual fun team dinner — burger lovers, budget-friendly groups, lively atmosphere</td>
+                  <td>Large groups who want zero ordering stress — buffet format suits 8–12 perfectly</td>
+                  <td>Reliable crowd-pleaser — consistent quality and great value for mixed groups</td>
+                </tr>
+                <tr class="row-watch">
+                  <td class="crit-col">⚠️ Watch Out</td>
+                  <td>Low review count (244) — less battle-tested for very large groups</td>
+                  <td>Japanese buffet style may not suit everyone if the group has varied preferences</td>
+                  <td>Same area as Madcow — if Ari is inconvenient, both top picks are affected</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════ FOOTER ══════════════════ -->
+  <footer>
+    <div class="footer-logo">🍜 AI Food Assistant</div>
+    <p>Bangkok Team Dinner Finder · June 2026</p>
+    <div class="footer-tags">
+      <span class="ftag">สยาม</span>
+      <span class="ftag">อารีย์</span>
+      <span class="ftag">ทองหล่อ</span>
+      <span class="ftag">อโศก</span>
+      <span class="ftag">พร้อมพงษ์</span>
+      <span class="ftag">AI-Powered</span>
+      <span class="ftag">Team Dining · 8–12 pax</span>
+    </div>
+  </footer>
+  </div><!-- /.page-wrap -->
+
+  <script>
+    // ── Info panel ──
+    const PANEL_LABELS = {
+      objective:   'Objective',
+      workflow:    'AI Workflow',
+      tools:       'Tech Stack',
+      datasources: 'Data Sources',
+      scoring:     'Scoring Model',
+    };
+
+    let activePanelKey = null;
+
+    function openPanel(key) {
+      const tpl = document.getElementById('tpl-' + key);
+      if (!tpl) return;
+      activePanelKey = key;
+      document.getElementById('info-panel-title').textContent = PANEL_LABELS[key] || key;
+      document.getElementById('info-panel-body').innerHTML = tpl.innerHTML;
+      document.body.classList.add('panel-open');
+      // Mark active nav link
+      document.querySelectorAll('nav a.info-link').forEach(a => {
+        a.classList.toggle('panel-active', a.dataset.panel === key);
+      });
+    }
+
+    function closePanel() {
+      activePanelKey = null;
+      document.body.classList.remove('panel-open');
+      document.querySelectorAll('nav a.info-link').forEach(a => a.classList.remove('panel-active'));
+    }
+
+    // Nav info-link clicks
+    document.querySelectorAll('nav a.info-link').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const key = a.dataset.panel;
+        if (activePanelKey === key) { closePanel(); } else { openPanel(key); }
+      });
+    });
+
+    // Close button
+    document.getElementById('info-panel-close').addEventListener('click', closePanel);
+
+    // Backdrop click
+    document.getElementById('panel-backdrop').addEventListener('click', closePanel);
+
+    // Escape key
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+    // ── Highlight active nav link on scroll ──
+    const sections = document.querySelectorAll('section[id], header');
+    const navLinks = document.querySelectorAll('nav a');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          navLinks.forEach(link => {
+            link.style.color = '';
+            link.style.background = '';
+            if (link.getAttribute('href') === '#' + entry.target.id) {
+              link.style.color = 'var(--gold)';
+              link.style.background = 'rgba(245,166,35,0.10)';
+            }
+          });
+        }
+      });
+    }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+
+    sections.forEach(sec => observer.observe(sec));
+
+    // ── Pre-baked Top 3 data per area ──
+    const AREA_TOP3 = {
+      'ทุกโซน': [
+        { rank:1, color:'gold', medal:'🥇', name:'Madcow burger x Under Over Ari', area:'อารีย์', areaClass:'area-ari', type:'🍔 Burger / American', score:93.8, rating:4.8, reviews:244, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'Highest-rated burger spot in Ari with strong group suitability, affordable price, and excellent review volume. Perfect casual team dinner with a fun, lively atmosphere.', pros:['Rating 4.8 with consistent quality across 244 reviews','Very affordable at 150–350฿/person — easy on the team budget','Burger format is crowd-pleasing and works for mixed groups'], cons:['Relatively low review count — less battle-tested for very large groups','Menu variety is limited to burgers — may not suit everyone'], url:'https://www.google.com/maps/search/?api=1&query=Madcow%20burger%20x%20Under%20Over%20Ari&query_place_id=ChIJtbK7WrOd4jARTFq03G7s99k' },
+        { rank:2, color:'blue', medal:'🥈', name:'KURATHAI SHOKUDO', area:'พร้อมพงษ์', areaClass:'area-phrom', type:'🍱 Japanese Buffet', score:93.8, rating:4.8, reviews:2025, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'Buffet format is ideal for groups of 8–12 — no ordering stress, everyone eats at their own pace. Massive review count of 2,025 signals proven, consistent reliability.', pros:['Buffet style eliminates ordering complexity for large groups','2,025 reviews — most proven restaurant in the dataset','Affordable price point at 150–350฿ despite Japanese quality'], cons:['Japanese buffet style may not suit everyone if the group has varied preferences','Located in Phrom Phong — may be less convenient depending on team location'], url:'https://www.google.com/maps/search/?api=1&query=KURATHAI%20SHOKUDO&query_place_id=ChIJBTylA_6e4jAR0Mo6lqXgp-0' },
+        { rank:3, color:'green', medal:'🥉', name:"Barney's Burger Joint", area:'อารีย์', areaClass:'area-ari', type:'🍔 Burger / American', score:93.8, rating:4.8, reviews:714, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'Well-established burger joint with strong consistent reviews, great value for a team, and easy access in Ari. A reliable crowd-pleaser for mixed groups.', pros:['714 reviews with 4.8 rating — highly consistent quality','Same Ari location as Madcow — easy to reach by BTS','Great budget option at 150–350฿ for team dinners'], cons:['Same area as Madcow — if Ari is inconvenient for the team, both top picks are affected','Burger-only menu limits options for non-burger eaters'], url:"https://www.google.com/maps/search/?api=1&query=Barney's%20Burger%20Joint&query_place_id=ChIJD7Gs1B2c4jART2PuI5seFus" }
+      ],
+      'อารีย์': [
+        { rank:1, color:'gold', medal:'🥇', name:'Madcow burger x Under Over Ari', area:'อารีย์', areaClass:'area-ari', type:'🍔 Burger / American', score:93.8, rating:4.8, reviews:244, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'Top-scoring restaurant in Ari with a perfect group suitability score and highly affordable pricing. The fun burger atmosphere makes it ideal for after-work team dinners.', pros:['Perfect 100/100 group suitability score','Most affordable option in the area at 150–350฿/person','Unique dual-concept space adds memorable experience'], cons:['Only 244 reviews — newer restaurant with less track record','Limited to burger menu — not ideal for dietary restrictions'], url:'https://www.google.com/maps/search/?api=1&query=Madcow%20burger%20x%20Under%20Over%20Ari&query_place_id=ChIJtbK7WrOd4jARTFq03G7s99k' },
+        { rank:2, color:'blue', medal:'🥈', name:"Barney's Burger Joint", area:'อารีย์', areaClass:'area-ari', type:'🍔 Burger / American', score:93.8, rating:4.8, reviews:714, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'The most review-proven burger restaurant in Ari, with 714 ratings averaging 4.8 stars. A safe, reliable bet for a team that wants quality without surprises.', pros:['714 reviews at 4.8 — most proven restaurant in Ari','Well-known name with consistent team dining experience','Walking distance from BTS Ari for easy group travel'], cons:['Burger-focused menu may not satisfy everyone','Very similar offering to Madcow — consider swapping if the team wants variety'], url:"https://www.google.com/maps/search/?api=1&query=Barney's%20Burger%20Joint&query_place_id=ChIJD7Gs1B2c4jART2PuI5seFus" },
+        { rank:3, color:'green', medal:'🥉', name:'Brooks brunch & bar Ari', area:'อารีย์', areaClass:'area-ari', type:'🍳 Brunch / All-Day', score:89.8, rating:4.8, reviews:1771, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:60}, why:'The best-reviewed restaurant in Ari with 1,771 ratings and a strong 4.8 score. All-day brunch format offers more menu variety than the burger options above.', pros:['1,771 reviews — highest review count in Ari by far','Brunch menu offers more variety for mixed dietary needs','Consistent 4.8 quality rating across a large sample'], cons:['Brunch format may feel casual for a proper team dinner','Slightly lower uniqueness score than the Top 2'], url:'https://www.google.com/maps/search/?api=1&query=Brooks%20brunch%20%26%20bar%20Ari&query_place_id=ChIJh4PTdWyd4jARLZPuo5nt_q4' }
+      ],
+      'สยาม': [
+        { rank:1, color:'gold', medal:'🥇', name:'Jim Thompson, A Thai Restaurant', area:'สยาม', areaClass:'area-siam', type:'🍜 Thai Fine Dining', score:89.8, rating:4.8, reviews:3595, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:60}, why:'The most-reviewed restaurant in Siam with 3,595 ratings at 4.8 stars. Set in the iconic Jim Thompson House, it delivers a uniquely Thai dining experience at an affordable price point.', pros:['3,595 reviews at 4.8 — most proven restaurant in Siam','Iconic Jim Thompson House setting — memorable team experience','Affordable Thai fine dining at 150–350฿/person'], cons:['Popular venue means reservations are strongly recommended for groups','Fine dining atmosphere may feel formal for casual team dinners'], url:'https://www.google.com/maps/search/?api=1&query=Jim%20Thompson%2C%20A%20Thai%20Restaurant&query_place_id=ChIJKVqr3I6Z4jARPi6t_zvvL1A' },
+        { rank:2, color:'blue', medal:'🥈', name:'Somtum On Sunday', area:'สยาม', areaClass:'area-siam', type:'🌶️ Thai / Isaan', score:89.8, rating:4.8, reviews:539, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:60}, why:'Casual Thai-Isaan spot near Phaya Thai with strong ratings and a relaxed atmosphere — perfect for teams who want authentic local food without the fine dining formality.', pros:['Casual, relaxed atmosphere great for team bonding','Authentic Thai-Isaan flavors at very affordable prices','Easy access near Phaya Thai BTS station'], cons:['Smaller review count (539) compared to other Siam options','Spicy Isaan food may not suit all team members'], url:'https://www.google.com/maps/search/?api=1&query=Somtum%20On%20Sunday&query_place_id=ChIJJS_hg0We4jARcZC9uZVkJtI' },
+        { rank:3, color:'green', medal:'🥉', name:'Baan Sapaitai', area:'สยาม', areaClass:'area-siam', type:'🍜 Thai / Home Style', score:89.8, rating:4.8, reviews:605, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:60}, why:'Home-style Thai restaurant with a warm, welcoming feel — great for teams who want comforting Thai food in a non-touristy setting near the Phahonyothin area.', pros:['Home-style Thai cooking — comfortable and familiar for most','Consistent 4.8 rating across 605 reviews','Warm atmosphere suited to relaxed team gatherings'], cons:['Less distinctive experience compared to Jim Thompson','Limited information on private dining or large group setup'], url:'https://www.google.com/maps/search/?api=1&query=Baan%20Sapaitai&query_place_id=ChIJv2XS7LWf4jAREQvT0r4seps' }
+      ],
+      'ทองหล่อ': [
+        { rank:1, color:'gold', medal:'🥇', name:'You&I Premium Suki Buffet Marché Thonglor', area:'ทองหล่อ', areaClass:'area-thonglor', type:'🍲 Suki Buffet', score:93.8, rating:4.8, reviews:583, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'Suki buffet format is perfectly suited for groups — everyone picks what they want, no ordering coordination needed. Located conveniently in Thonglor with strong reviews.', pros:['Buffet format eliminates menu decision fatigue for large groups','Premium suki quality at an affordable 150–350฿ price point','Located inside Marché Thonglor — easy to find and park'], cons:['583 reviews is moderate — less proven than some alternatives','Suki style requires everyone to be comfortable with the format'], url:'https://www.google.com/maps/search/?api=1&query=You%26I%20Premium%20Suki%20Buffet&query_place_id=ChIJxXLrTF2f4jARQ5rNYsm0jvc' },
+        { rank:2, color:'blue', medal:'🥈', name:'Era-izaan Kaya Thonglor', area:'ทองหล่อ', areaClass:'area-thonglor', type:'🍶 Izakaya / Isaan', score:93.2, rating:4.7, reviews:851, price:'150–350฿', scores:{rating:94,group:100,price:85,travel:80,data:100,unique:100}, why:'A unique Thai-Isaan izakaya fusion — perfect for teams who want something different. The live music atmosphere makes it an especially memorable after-work experience.', pros:['Unique izakaya-Isaan fusion — stands out from typical team dinner spots','851 strong reviews confirm consistent quality','Live music atmosphere elevates the team bonding experience'], cons:['Live music venue can get loud — harder for group conversation','4.7 rating slightly below the top pick'], url:'https://www.google.com/maps/search/?api=1&query=Era-izaan%20Kaya%20Thonglor&query_place_id=ChIJd5ObZC-f4jARnQKOFsQbVHM' },
+        { rank:3, color:'green', medal:'🥉', name:'BARTELS Thonglor', area:'ทองหล่อ', areaClass:'area-thonglor', type:'🥪 Brunch / Western', score:93.2, rating:4.7, reviews:917, price:'150–350฿', scores:{rating:94,group:100,price:85,travel:80,data:100,unique:100}, why:'The highest-reviewed Western option in Thonglor, great for teams with international members. Sourdough sandwiches and fresh juices in a trendy Market Place setting.', pros:['917 reviews — highest count among Thonglor top 3','Western menu suits mixed nationality teams well','Trendy Market Place Thonglor location, easy to access'], cons:['Brunch/café format may feel too casual for a dinner occasion','Menu is lighter — may not satisfy bigger appetites'], url:'https://www.google.com/maps/search/?api=1&query=BARTELS%20Thonglor&query_place_id=ChIJRYG-ZEmf4jARsi5wK97SIJU' }
+      ],
+      'อโศก': [
+        { rank:1, color:'gold', medal:'🥇', name:"Ping's Shark Fin Restaurant Asoke", area:'อโศก', areaClass:'area-asoke', type:'🦈 Chinese / Seafood', score:92.8, rating:4.6, reviews:1583, price:'150–350฿', scores:{rating:92,group:100,price:85,travel:80,data:100,unique:100}, why:'Top-scoring restaurant in Asoke with 92.8 points — an institution with 1,583 reviews and a uniquely memorable Chinese seafood menu. The shark fin specialty gives it a distinctive identity perfect for a standout team occasion.', pros:['1,583 reviews — most proven restaurant in Asoke','Unique Chinese seafood menu — a genuinely different team dinner','Long-established reputation on Sukhumvit 21'], cons:['Shark fin dishes are controversial for environmentally-conscious team members','4.6 rating is slightly lower than the other Asoke picks'], url:"https://www.google.com/maps/search/?api=1&query=Ping's%20Shark%20Fin%20Restaurant%20Asoke&query_place_id=ChIJnfQQnAGf4jARkEY6N_nZR74" },
+        { rank:2, color:'blue', medal:'🥈', name:'Mariga', area:'อโศก', areaClass:'area-asoke', type:'🍜 Thai Fine Dining', score:90.2, rating:4.9, reviews:745, price:'150–350฿', scores:{rating:98,group:100,price:85,travel:80,data:100,unique:60}, why:'Holds the highest Google rating of any restaurant in the entire dataset at 4.9 stars, inside the Samala Hotel. An upscale Thai dining experience at a surprisingly accessible price for Asoke.', pros:['4.9 stars — highest rating of any restaurant across all 5 areas','Upscale hotel restaurant setting elevates the team dinner feel','Affordable at 150–350฿ despite the premium environment'], cons:['Hotel restaurant atmosphere may feel formal for casual team dinners','Lower uniqueness score — more traditional Thai dining experience'], url:'https://www.google.com/maps/search/?api=1&query=Mariga&query_place_id=ChIJsVHlc0ef4jARH5KLLPC4zdo' },
+        { rank:3, color:'green', medal:'🥉', name:'Gigi Eatery Asoke', area:'อโศก', areaClass:'area-asoke', type:'🍝 Italian', score:89.8, rating:4.8, reviews:3323, price:'400–750฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:60}, why:'The most-reviewed restaurant in Asoke with 3,323 ratings at 4.8 stars. Gigi is a proven crowd-pleaser — Italian food works universally well for mixed groups and corporate dinners.', pros:['3,323 reviews at 4.8 — by far the most proven in Asoke','Italian food appeals broadly to mixed teams including international members','Well-known brand with professional service standards'], cons:['Higher price at 400–750฿/person increases total team dinner cost','Less unique experience compared to the Chinese or Thai options'], url:'https://www.google.com/maps/search/?api=1&query=Gigi%20Eatery%20Asoke&query_place_id=ChIJw5WEJoqf4jARFC4PiDtFCzc' }
+      ],
+      'พร้อมพงษ์': [
+        { rank:1, color:'gold', medal:'🥇', name:'KURATHAI SHOKUDO', area:'พร้อมพงษ์', areaClass:'area-phrom', type:'🍱 Japanese Buffet', score:93.8, rating:4.8, reviews:2025, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'The top-scoring restaurant in Phrom Phong — Japanese buffet format perfectly suits groups of 8–12, with 2,025 reviews confirming its proven reliability.', pros:['2,025 reviews at 4.8 — most proven restaurant in Phrom Phong','Buffet format is the most group-friendly dining style','Affordable at 150–350฿ despite Japanese buffet quality'], cons:['Buffet style may not suit teams wanting a sit-down curated meal','Can get busy — reservation recommended for groups of 8+'], url:'https://www.google.com/maps/search/?api=1&query=KURATHAI%20SHOKUDO&query_place_id=ChIJBTylA_6e4jAR0Mo6lqXgp-0' },
+        { rank:2, color:'blue', medal:'🥈', name:'Bornga Thailand', area:'พร้อมพงษ์', areaClass:'area-phrom', type:'🥩 Korean BBQ', score:93.8, rating:4.8, reviews:4135, price:'150–350฿', scores:{rating:96,group:100,price:85,travel:80,data:100,unique:100}, why:'The most-reviewed restaurant across all 5 areas with 4,135 ratings. Korean BBQ is inherently social and group-friendly — grilling together is one of the best team dinner formats.', pros:['4,135 reviews — highest review count in the entire dataset','Korean BBQ grilling is inherently social and fun for teams','Strong 4.8 rating maintained across a massive review volume'], cons:['Clothes may smell of BBQ smoke after the meal','Higher-energy experience — not ideal if the team prefers a quiet dinner'], url:'https://www.google.com/maps/search/?api=1&query=Bornga%20Thailand&query_place_id=ChIJbY7gF8Of4jARFyzLUFoqsuQ' },
+        { rank:3, color:'green', medal:'🥉', name:'Kobe Tonteki Phrom Phong', area:'พร้อมพงษ์', areaClass:'area-phrom', type:'🍖 Japanese Western', score:92.8, rating:4.6, reviews:1920, price:'400–750฿', scores:{rating:92,group:100,price:85,travel:80,data:100,unique:100}, why:'A unique Japanized western restaurant serving Kobe-style pork steak — a distinctly different offering that stands out for teams looking for something beyond typical Japanese or Korean.', pros:['Unique Japanized western concept — memorable and different','1,920 reviews confirm consistent quality at this location','Good for teams that want a proper sit-down dinner with individual plates'], cons:['Higher price point at 400–750฿/person','Less group-interactive than BBQ or buffet formats'], url:'https://www.google.com/maps/search/?api=1&query=Kobe%20Tonteki%20Phrom%20Phong&query_place_id=ChIJ71MxUnKf4jAR_nrxq8_tPIM' }
+      ]
+    };
+
+    // ── Render Top 3 cards ──
+    function renderTop3(areaKey) {
+      const restaurants = AREA_TOP3[areaKey] || AREA_TOP3['ทุกโซน'];
+      document.getElementById('top3-heading').textContent =
+        areaKey === 'ทุกโซน' ? 'Top 3 Recommendations' : 'Top 3 — ' + areaKey;
+
+      const accentColor = { gold: '#f5a623', blue: '#60b4f5', green: '#4ade80' };
+      const scoreLabels = [
+        ['Rating & Reviews', 'rating'],
+        ['Group Suitability', 'group'],
+        ['Price Suitability', 'price'],
+        ['Travel Convenience', 'travel'],
+        ['Data Completeness', 'data'],
+        ['Uniqueness', 'unique']
+      ];
+
+      const grid = document.getElementById('top3-grid');
+      grid.innerHTML = restaurants.map(r => {
+        const accent = accentColor[r.color] || '#f5a623';
+
+        const scoreBars = scoreLabels.map(([label, key]) =>
+          `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <span style="font-size:11px;color:var(--muted);width:130px;flex-shrink:0">${label}</span>
+            <div style="flex:1;height:5px;background:var(--border);border-radius:99px;overflow:hidden">
+              <div style="height:100%;border-radius:99px;background:${accent};width:${r.scores[key]}%"></div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${accent};width:28px;text-align:right">${r.scores[key]}</span>
+          </div>`
+        ).join('');
+
+        const pros = r.pros.map(p => `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">· ${p}</div>`).join('');
+        const cons = r.cons.map(c => `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">· ${c}</div>`).join('');
+
+        return `<div class="rec-card ${r.color}">
+          <div class="rec-card-top">
+            <div class="rec-medal">${r.medal}</div>
+            <div class="rec-name">${r.name}</div>
+            <div class="rec-tags">
+              <span class="rec-tag ${r.areaClass}">${r.area}</span>
+              <span class="rec-tag food-type">${r.type}</span>
+            </div>
+          </div>
+          <div class="rec-card-body">
+            <div class="rec-score-row">
+              <div class="rec-score-bar-wrap"><div class="rec-score-bar" style="width:${r.score}%"></div></div>
+              <span class="rec-score-num">${r.score} / 100</span>
+            </div>
+            <div class="rec-stats">
+              <span>⭐ <strong>${r.rating}</strong> Google Rating</span>
+              <span>💬 <strong>${r.reviews.toLocaleString()}</strong> reviews</span>
+              <span>💰 <strong>${r.price}</strong> / person</span>
+            </div>
+            <div class="rec-why">${r.why}</div>
+            <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px">
+              <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">📊 Score Breakdown</div>
+              ${scoreBars}
+            </div>
+            <div style="border-left:2px solid rgba(74,222,128,0.4);padding-left:10px;margin-top:12px">
+              <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:6px">✅ Pros</div>
+              ${pros}
+            </div>
+            <div style="border-left:2px solid rgba(245,166,35,0.4);padding-left:10px;margin-top:10px">
+              <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:6px">⚠️ Watch Out</div>
+              ${cons}
+            </div>
+            <a class="rec-btn" href="${r.url}" target="_blank" rel="noopener">📍 View on Google Maps</a>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── CSV Parser (handles quoted fields with commas) ──
+    function parseCSV(text) {
+      const rows = [];
+      const lines = text.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const cols = [];
+        let cur = '';
+        let inQuote = false;
+        for (let j = 0; j < line.length; j++) {
+          const ch = line[j];
+          if (ch === '"') {
+            if (inQuote && line[j + 1] === '"') { cur += '"'; j++; }
+            else { inQuote = !inQuote; }
+          } else if (ch === ',' && !inQuote) {
+            cols.push(cur.trim()); cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        cols.push(cur.trim());
+        rows.push(cols);
+      }
+      return rows;
+    }
+
+    // ── State ──
+    let allRows = [];
+    let top10 = [];
+    let sortCol = 'rank';
+    let sortDir = 1; // 1 = asc, -1 = desc
+    let activeArea = null; // null = show all
+    let showAll = false;   // expand beyond top-10 when area filter active
+
+    const COL = {
+      name:    0,  area:    1,  type:    2,  rating:  3,
+      reviews: 4,  priceRange: 5, price: 6, address: 7,
+      hours:   8,  group:   9,  url:    10, notes:   11,
+      sRating: 12, sGroup:  13, sPrice: 14, sTravel: 15,
+      sData:   16, sUnique: 17, total:  18
+    };
+
+    // ── Fetch & render ──
+    const OPENROUTER_API_KEY = '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';
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQbx-hvjowjhXSzjCnnpZeOePslJE6nyduzAmbQqIfQ9UzA-zew-Hqjt4K9UmwZ2EmyYuvuNghBGXb9/pub?gid=785299894&single=true&output=csv';
+
+    const FETCH_ATTEMPTS = [
+      CSV_URL,
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(CSV_URL),
+      'https://corsproxy.io/?' + encodeURIComponent(CSV_URL),
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(CSV_URL),
+    ];
+
+    async function tryFetch(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' from ' + url);
+      const text = await res.text();
+      // allorigins wraps in JSON sometimes — detect and unwrap
+      if (text.trim().startsWith('{"contents"')) {
+        const json = JSON.parse(text);
+        return json.contents;
+      }
+      return text;
+    }
+
+    async function loadInsights(areaKey) {
+      areaKey = areaKey || 'ทุกโซน';
+      const container = document.getElementById('insights-container');
+      // Show loading state
+      container.innerHTML = '<div class="insights-loading"><span>🤖</span> <span>AI is analyzing ' + (areaKey === 'ทุกโซน' ? 'all areas' : areaKey) + '...</span></div>';
+      // Get the top 3 restaurants for this area from AREA_TOP3
+      const restaurants = AREA_TOP3[areaKey] || AREA_TOP3['ทุกโซน'];
+      const top3Names = restaurants.map((r, i) => (i + 1) + '. ' + r.name + ' (score: ' + r.score + ', ' + r.type + ', ' + r.price + '/person)').join('; ');
+      const areaLabel = areaKey === 'ทุกโซน' ? 'all 5 Bangkok areas (Siam, Ari, Thonglor, Asoke, Phrom Phong)' : areaKey + ' area in Bangkok';
+      const prompt = 'You are a restaurant analyst. The top 3 restaurants for a team dinner of 8-12 people in ' + areaLabel + ' are: ' + top3Names + '. Write EXACTLY 3 insights about these specific restaurants for a team choosing where to dine. Each insight must be 1 sentence, specific to these restaurants. You MUST return ONLY a JSON array of exactly 3 strings. No markdown, no explanation, no code fences. Format: ["insight about #1","insight about #2","insight about #3"]';
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + OPENROUTER_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'openrouter/free',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a JSON-only API. You must always respond with a valid JSON array of exactly 3 strings. Never include markdown, code fences, or any other text outside the JSON array.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ]
+          })
+        });
+        const data = await response.json();
+        let raw = data.choices[0].message.content;
+        // Aggressively clean any markdown or extra text
+        raw = raw.replace(/```json|```/g, '').trim();
+        // Extract JSON array even if there's extra text around it
+        const match = raw.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error('No JSON array found');
+        const insights = JSON.parse(match[0]);
+        // Ensure exactly 3 items
+        if (!Array.isArray(insights) || insights.length === 0) throw new Error('Invalid format');
+        // Pad to 3 if fewer returned
+        while (insights.length < 3) {
+          insights.push('This area offers excellent dining options suitable for team dinners of 8–12 people.');
+        }
+        container.innerHTML = '<div class="insights-grid">' +
+          insights.slice(0, 3).map((insight, i) =>
+            '<div class="insight-card">' +
+              '<div class="insight-number">' + (i + 1) + '</div>' +
+              '<div class="insight-text">' + escHtml(String(insight)) + '</div>' +
+            '</div>'
+          ).join('') +
+        '</div>';
+      } catch (err) {
+        container.innerHTML = '<div class="insights-loading" style="color:var(--muted);flex-direction:column;gap:6px">' +
+          '<span>⚠️ Could not load AI insights</span>' +
+          '<span style="font-size:11px;opacity:0.6">Check API key or try reloading</span>' +
+        '</div>';
+        console.error('Insights error:', err);
+      }
+    }
+
+    async function loadData(isReload = false) {
+      const btn = document.getElementById('reload-btn');
+      if (isReload && btn) {
+        btn.textContent = '🔄 Reloading...';
+        btn.disabled = true;
+      }
+
+      let text = null;
+      let lastErr = null;
+      for (const url of FETCH_ATTEMPTS) {
+        try {
+          text = await tryFetch(url);
+          if (text && text.trim().length > 0) break;
+        } catch (e) {
+          lastErr = e;
+          console.warn('Fetch attempt failed:', url, e.message);
+        }
+      }
+
+      if (isReload && btn) {
+        btn.textContent = '🔄 Reload';
+        btn.disabled = false;
+      }
+
+      if (!text || text.trim().length === 0) {
+        document.getElementById('ranking-tbody').innerHTML =
+          '<tr class="table-status-row"><td colspan="12">⚠️ Failed to load data. Please try again. (Check console for details)</td></tr>';
+        console.error('All fetch attempts failed. Last error:', lastErr);
+        return;
+      }
+
+      try {
+        const rows = parseCSV(text);
+        if (rows.length < 2) throw new Error('No data rows found in CSV');
+
+        // Skip header row
+        allRows = rows.slice(1).filter(r => r.length > COL.total && r[COL.name]);
+
+        // Global top 10 by score
+        top10 = [...allRows]
+          .sort((a, b) => parseFloat(b[COL.total] || 0) - parseFloat(a[COL.total] || 0))
+          .slice(0, 10);
+
+        // Reset expand state on reload
+        if (isReload) { showAll = false; sortCol = 'rank'; sortDir = 1; }
+
+        // Update status bar date
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        const el = document.getElementById('last-updated');
+        if (el) el.textContent = dateStr;
+
+        renderTable(getDisplayRows(), sortCol, sortDir);
+      } catch (err) {
+        document.getElementById('ranking-tbody').innerHTML =
+          '<tr class="table-status-row"><td colspan="12">⚠️ Failed to parse data. Please try again.</td></tr>';
+        console.error('Parse error:', err);
+      }
+    }
+
+    // ── Get rows to display (filtered by area or top10) ──
+    function getAreaRows() {
+      if (!activeArea) return null;
+      return [...allRows]
+        .filter(r => r[COL.area] && r[COL.area].includes(activeArea))
+        .sort((a, b) => parseFloat(b[COL.total] || 0) - parseFloat(a[COL.total] || 0));
+    }
+
+    function getDisplayRows() {
+      if (!activeArea) return top10;
+      const area = getAreaRows();
+      return showAll ? area : area.slice(0, 10);
+    }
+
+    // ── Update the show-all toggle button ──
+    function updateToggleBtn() {
+      const wrap = document.getElementById('show-all-wrap');
+      const btn  = document.getElementById('show-all-btn');
+      if (!activeArea) { wrap.style.display = 'none'; return; }
+      const area = getAreaRows();
+      if (!area || area.length <= 10) { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'flex';
+      btn.textContent = showAll
+        ? 'Show less ▲'
+        : 'Show all ' + area.length + ' restaurants in this area ▼';
+    }
+
+    // ── Render rows ──
+    function renderTable(rows, col, dir) {
+      const medals = ['🥇', '🥈', '🥉'];
+      const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
+
+      // Score-order index within the passed rows (for rank labels)
+      const scoreOrdered = [...rows].sort((a, b) => parseFloat(b[COL.total] || 0) - parseFloat(a[COL.total] || 0));
+
+      const sortedRows = [...rows].sort((a, b) => {
+        let va, vb;
+        if (col === 'rank') {
+          va = scoreOrdered.indexOf(a); vb = scoreOrdered.indexOf(b);
+        } else if (col === 'score') {
+          va = parseFloat(a[COL.total] || 0); vb = parseFloat(b[COL.total] || 0);
+        } else if (col === 'price') {
+          va = (a[COL.price] || '').toLowerCase(); vb = (b[COL.price] || '').toLowerCase();
+        } else if (col === 'name') {
+          va = (a[COL.name] || '').toLowerCase(); vb = (b[COL.name] || '').toLowerCase();
+        } else if (col === 'area') {
+          va = (a[COL.area] || '').toLowerCase(); vb = (b[COL.area] || '').toLowerCase();
+        } else if (col === 'type') {
+          va = (a[COL.type] || '').toLowerCase(); vb = (b[COL.type] || '').toLowerCase();
+        }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+
+      const tbody = document.getElementById('ranking-tbody');
+      tbody.innerHTML = '';
+
+      sortedRows.forEach(row => {
+        const displayRank = scoreOrdered.indexOf(row); // 0-based rank within current result set
+        const rankLabel = displayRank < 3
+          ? medals[displayRank] + ' ' + (displayRank + 1)
+          : String(displayRank + 1);
+        const rankClass = displayRank < 3 ? rankClasses[displayRank] : '';
+
+        const name  = row[COL.name]  || '—';
+        const url   = row[COL.url]   || '#';
+        const area  = row[COL.area]  || '—';
+        const type  = row[COL.type]  || '—';
+        const score = parseFloat(row[COL.total] || 0).toFixed(2);
+        // Bug Fix 1: use price range text directly, no parsing
+        const price = row[COL.price] || '—';
+        const sRating = parseFloat(row[12] || 0).toFixed(0);
+        const sGroup  = parseFloat(row[13] || 0).toFixed(0);
+        const sPrice  = parseFloat(row[14] || 0).toFixed(0);
+        const sTravel = parseFloat(row[15] || 0).toFixed(0);
+        const sData   = parseFloat(row[16] || 0).toFixed(0);
+        const sUnique = parseFloat(row[17] || 0).toFixed(0);
+
+        const tr = document.createElement('tr');
+        if (rankClass) tr.className = rankClass;
+        tr.innerHTML =
+          '<td class="rank-cell">' + rankLabel + '</td>' +
+          '<td><a class="restaurant-link" href="' + escHtml(url) + '" target="_blank" rel="noopener">' + escHtml(name) + '</a></td>' +
+          '<td>' + escHtml(area) + '</td>' +
+          '<td>' + escHtml(type) + '</td>' +
+          '<td><span class="score-val">' + score + '</span></td>' +
+          '<td class="subscore-val">' + sRating + '</td>' +
+          '<td class="subscore-val">' + sGroup + '</td>' +
+          '<td class="subscore-val">' + sPrice + '</td>' +
+          '<td class="subscore-val">' + sTravel + '</td>' +
+          '<td class="subscore-val">' + sData + '</td>' +
+          '<td class="subscore-val">' + sUnique + '</td>' +
+          '<td>' + escHtml(price) + '</td>';
+        tbody.appendChild(tr);
+      });
+
+      // Update header arrows
+      document.querySelectorAll('#ranking-table thead th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        const arrow = th.querySelector('.sort-arrow');
+        if (arrow) arrow.textContent = '';
+      });
+      const activeCol = document.querySelector('#ranking-table thead th[data-col="' + col + '"]');
+      if (activeCol) {
+        activeCol.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+        const activeArrow = activeCol.querySelector('.sort-arrow');
+        if (activeArrow) activeArrow.textContent = dir === 1 ? ' ↑' : ' ↓';
+      }
+
+      // Update expand toggle
+      updateToggleBtn();
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── Sortable headers ──
+    document.querySelectorAll('#ranking-table thead th').forEach(th => {
+      th.addEventListener('click', () => {
+        if (!allRows.length) return;
+        const col = th.dataset.col;
+        if (sortCol === col) {
+          sortDir *= -1;
+        } else {
+          sortCol = col;
+          sortDir = col === 'score' ? -1 : 1;
+        }
+        renderTable(getDisplayRows(), sortCol, sortDir);
+      });
+    });
+
+    // ── Area chip filter ──
+    const AREA_MAP = {
+      'สยาม · Siam':             'สยาม',
+      'อารีย์ · Ari':            'อารีย์',
+      'ทองหล่อ · Thonglor':      'ทองหล่อ',
+      'อโศก · Asoke':            'อโศก',
+      'พร้อมพงษ์ · Phrom Phong': 'พร้อมพงษ์',
+    };
+
+    function setActiveChip(chip) {
+      document.querySelectorAll('.area-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    }
+
+    // "All Areas" chip
+    document.getElementById('chip-all').addEventListener('click', () => {
+      if (activeArea === null) return; // already active — do nothing
+      activeArea = null;
+      showAll = false;
+      sortCol = 'rank';
+      sortDir = 1;
+      setActiveChip(document.getElementById('chip-all'));
+      renderTop3('ทุกโซน');
+      loadInsights('ทุกโซน');
+      if (allRows.length) renderTable(getDisplayRows(), sortCol, sortDir);
+    });
+
+    // Area chips
+    document.querySelectorAll('.area-chip:not(#chip-all)').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const key = chip.textContent.trim();
+        const areaMatch = AREA_MAP[key];
+        if (!areaMatch) return;
+        if (activeArea === areaMatch) return; // already active — do nothing
+
+        activeArea = areaMatch;
+        showAll = false;
+        sortCol = 'rank';
+        sortDir = 1;
+        setActiveChip(chip);
+        renderTop3(areaMatch);
+        loadInsights(areaMatch);
+        if (allRows.length) renderTable(getDisplayRows(), sortCol, sortDir);
+      });
+    });
+
+    // ── Show-all toggle ──
+    document.getElementById('show-all-btn').addEventListener('click', () => {
+      if (!allRows.length) return;
+      showAll = !showAll;
+      sortCol = 'rank';
+      sortDir = 1;
+      renderTable(getDisplayRows(), sortCol, sortDir);
+    });
+
+    // ── Reload button ──
+    document.getElementById('reload-btn').addEventListener('click', () => {
+      loadData(true);
+    });
+
+    // ── Kick off ──
+    renderTop3('ทุกโซน');
+    loadData();
+    loadInsights('ทุกโซน');
+  </script>
+</body>
+</html>
